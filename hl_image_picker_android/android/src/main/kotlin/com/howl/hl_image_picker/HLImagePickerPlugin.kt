@@ -1,5 +1,6 @@
 package com.howl.hl_image_picker
 
+import android.util.Log
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -143,22 +144,32 @@ class HLImagePickerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Plu
                 .setSandboxFileEngine(AndroidQSandboxFileEngine())
                 .forResultActivity(object : OnResultCallbackListener<LocalMedia> {
                     override fun onResult(result: ArrayList<LocalMedia>?) {
-                        if (result != null) {
-                            mediaPickerResult?.success(buildResponse(result[0]))
-                            mediaPickerResult = null
-                        } else {
-                            mediaPickerResult?.error("CAMERA_ERROR", "Camera error", null)
-                            mediaPickerResult = null
-                            Log.d("MediaPicker", "mediaPickerResult has been set to null")
-                        }
-                    }
+    try {
+        if (result != null && result.isNotEmpty()) {
+            mediaPickerResult?.success(buildResponse(result[0]))
+            //Log.d("HLImagePickerPlugin", "onResult: ${result[0]}")
+        } else {
+            mediaPickerResult?.error("CAMERA_ERROR", "Camera error", null)
+            //Log.d("HLImagePickerPlugin", "onResult: Camera error")
+        }
+    } catch (e: Exception) {
+        Log.e("HLImagePickerPlugin", "Exception in onResult", e)
+    } finally {
+        mediaPickerResult = null
+    }
+}
 
-                    override fun onCancel() {
-                        mediaPickerResult?.error("CANCELED", "User has canceled the picker", null)
-                        mediaPickerResult = null
-                        Log.d("MediaPicker", "mediaPickerResult has been set to null")
-                    }
-                })
+override fun onCancel() {
+    try {
+        mediaPickerResult?.error("CANCELED", "User has canceled the picker", null)
+        //Log.d("HLImagePickerPlugin", "onCancel: User has canceled the picker")
+    } catch (e: Exception) {
+        Log.e("HLImagePickerPlugin", "Exception in onCancel", e)
+    } finally {
+        mediaPickerResult = null
+    }
+}
+})
     }
 
     private fun openPicker() {
@@ -240,19 +251,35 @@ class HLImagePickerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Plu
                 .setSandboxFileEngine(AndroidQSandboxFileEngine())
                 .forResult(object : OnResultCallbackListener<LocalMedia?> {
                     override fun onResult(result: ArrayList<LocalMedia?>?) {
-                        shouldReturnOnDestroy = false
-                        val mediaList: MutableList<Map<String, Any>> = mutableListOf()
-                        result?.forEach { media ->
-                            if (media != null) {
-                                mediaList.add(buildResponse(media))
+                        try{
+                            shouldReturnOnDestroy = false
+                            val mediaList: MutableList<Map<String, Any>> = mutableListOf()
+                            result?.forEach { media ->
+                              if (media != null) {
+                                   mediaList.add(buildResponse(media))
+                                }
                             }
+                            mediaPickerResult?.success(mediaList)
+                            mediaPickerResult = null
+                            //Log.d("HLImagePickerPlugin", "onResult: $mediaList")
+                        } catch (e: Exception) {
+                            Log.e("HLImagePickerPlugin", "Exception in onResult", e)
+                        } finally {
+                            mediaPickerResult = null
                         }
-                        mediaPickerResult?.success(mediaList)
                     }
 
                     override fun onCancel() {
-                        shouldReturnOnDestroy = false
-                        mediaPickerResult?.error("CANCELED", "User has canceled the picker", null)
+                        try{
+                            shouldReturnOnDestroy = false
+                            mediaPickerResult?.error("CANCELED", "User has canceled the picker", null)
+                            mediaPickerResult = null
+                            //Log.d("HLImagePickerPlugin", "onCancel: User has canceled the picker")
+                        }catch (e: Exception) {
+                            Log.e("HLImagePickerPlugin", "Exception in onCancel", e)
+                        } finally {
+                            mediaPickerResult = null
+                        }
                     }
                 })
     }
@@ -510,13 +537,14 @@ class HLImagePickerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Plu
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode == CROPPER_RESULT_CODE) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                val outputUri = UCrop.getOutput(data)
-                val imagePath = outputUri?.path
-                if(outputUri == null || imagePath == null) {
-                    mediaPickerResult?.error("CROPPER_ERROR", "Crop error", null)
-                    return true
-                }
+            try {
+                if (resultCode == Activity.RESULT_OK && data != null) {
+                    val outputUri = UCrop.getOutput(data)
+                    val imagePath = outputUri?.path
+                    if (outputUri == null || imagePath == null) {
+                        mediaPickerResult?.error("CROPPER_ERROR", "Crop error", null)
+                        return true
+                    }
                 val imageFile = File(imagePath)
                 val item = mutableMapOf<String, Any>()
                 item["id"] = imagePath
@@ -529,16 +557,22 @@ class HLImagePickerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Plu
                 item["height"] = UCrop.getOutputImageHeight(data)
                 mediaPickerResult?.success(item)
                 mediaPickerResult = null
-                Log.d("MediaPicker", "mediaPickerResult has been set to null")
+                //Log.d("HLImagePickerPlugin", "onActivityResult: $item")
             } else {
                 mediaPickerResult?.error("CROPPER_ERROR", "Crop error", null)
                 mediaPickerResult = null
-                Log.d("MediaPicker", "mediaPickerResult has been set to null")
+                //Log.d("HLImagePickerPlugin", "onActivityResult: Crop error")
             }
-            return true
+        } catch (e: Exception) {
+            Log.e("HLImagePickerPlugin", "Exception in onActivityResult", e)
+        } finally {
+            mediaPickerResult = null
         }
-        return false
+        return true
     }
+    return false
+}
+
 
     private fun getPathToMimeType(path: String): String {
         val mimeType: String = if (FileUtils.isContent(path)) {
