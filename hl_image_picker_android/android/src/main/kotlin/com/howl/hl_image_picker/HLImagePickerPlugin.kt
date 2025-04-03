@@ -149,12 +149,14 @@ class HLImagePickerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Plu
                         } else {
                             mediaPickerResult?.error("CAMERA_ERROR", "Camera error", null)
                             mediaPickerResult = null
+                            Log.d("MediaPicker", "mediaPickerResult has been set to null")
                         }
                     }
 
                     override fun onCancel() {
                         mediaPickerResult?.error("CANCELED", "User has canceled the picker", null)
                         mediaPickerResult = null
+                        Log.d("MediaPicker", "mediaPickerResult has been set to null")
                     }
                 })
     }
@@ -527,9 +529,11 @@ class HLImagePickerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Plu
                 item["height"] = UCrop.getOutputImageHeight(data)
                 mediaPickerResult?.success(item)
                 mediaPickerResult = null
+                Log.d("MediaPicker", "mediaPickerResult has been set to null")
             } else {
                 mediaPickerResult?.error("CROPPER_ERROR", "Crop error", null)
                 mediaPickerResult = null
+                Log.d("MediaPicker", "mediaPickerResult has been set to null")
             }
             return true
         }
